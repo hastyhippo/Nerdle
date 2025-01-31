@@ -10,6 +10,7 @@ import {
   generateValidWords,
   generateWordSet,
 } from "./components/Words";
+import WordRankings from "./components/WordRankings";
 
 export const AppContext = createContext();
 
@@ -65,6 +66,7 @@ function App() {
       setAttempt({ attempt: currAttempt.attempt + 1, letterPos: 0 });
     } else {
       setShowPopup(true);
+      return;
     }
 
     if (currWord.toUpperCase() === correctWord.toUpperCase()) {
@@ -108,7 +110,9 @@ function App() {
             <Board />
             {gameOver.gameOver ? <GameOver /> : <Keyboard />}
           </div>
-          <div className="solver">asd</div>
+          <div className="solver">
+            <WordRankings />
+          </div>
         </div>
       </AppContext.Provider>
       <p1 className="copyright">
