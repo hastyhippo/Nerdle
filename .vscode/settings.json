@@ -1,6 +1,15 @@
 {
     "files.associations": {
         "vector": "cpp",
-        "iostream": "cpp"
-    }
+        "iostream": "cpp",
+        "xstring": "cpp",
+        "random": "cpp",
+        "unordered_map": "cpp",
+        "iomanip": "cpp",
+        "utility": "cpp",
+        "regex": "cpp",
+        "sstream": "cpp",
+        "chrono": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

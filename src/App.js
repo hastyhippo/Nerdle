@@ -21,6 +21,9 @@ function App() {
   const [disabledLetters, setDisabledLetters] = useState([]);
   const [almostLetters, setAlmostLetters] = useState([]);
   const [correctLetters, setCorrectLetters] = useState([]);
+  const [localCorrectLetters, setLocalCorrectLetters] = useState([]);
+  const [localAlmostLetters, setLocalAlmostLetters] = useState([]);
+  const [localDisabledLetters, setLocalDisabledLetters] = useState([]);
 
   const [gameOver, setGameOver] = useState({
     gameOver: false,
@@ -53,6 +56,46 @@ function App() {
     setBoard(newBoard);
     setAttempt({ ...currAttempt, letterPos: currAttempt.letterPos - 1 });
   };
+  useEffect(() => {
+    const correctData = {
+      correctLetters: localCorrectLetters,
+    };
+    console.log(correctData);
+    if (localCorrectLetters.length === 0) return;
+
+    fetch("http://localhost:5000/correct", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(correctData),
+    });
+    // .then((data) => console.log("Server response:", data))
+    // .catch((error) => console.error("Error sending data to server:", error));
+  }, [localCorrectLetters]);
+
+  useEffect(() => {
+    if (
+      localCorrectLetters.length > 0 ||
+      localAlmostLetters.length > 0 ||
+      localDisabledLetters.length > 0
+    ) {
+      const data = {
+        correctLetters: localCorrectLetters,
+        almostLetters: localAlmostLetters,
+        disabledLetters: localDisabledLetters,
+      };
+
+      fetch("http://localhost:5000/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+        .then((response) => response.json())
+        .then((data) => console.log("Server response:", data))
+        .catch((error) =>
+          console.error("Error sending data to server:", error)
+        );
+    }
+  }, [localCorrectLetters, localAlmostLetters, localDisabledLetters]);
 
   const onEnter = () => {
     if (currAttempt.letterPos !== 5) return;
@@ -63,19 +106,25 @@ function App() {
     }
 
     if (wordSet.has(currWord.toLowerCase())) {
+      // If attempt is valid
       setAttempt({ attempt: currAttempt.attempt + 1, letterPos: 0 });
+
+      setLocalCorrectLetters([]);
+      setLocalAlmostLetters([]);
+      setLocalDisabledLetters([]);
+
+      if (currWord.toUpperCase() === correctWord.toUpperCase()) {
+        setGameOver({ gameOver: true, guessedWord: true });
+        return;
+      }
+
+      if (currAttempt.attempt === 5) {
+        setGameOver({ gameOver: true, guessedWord: false });
+      }
+      return;
     } else {
       setShowPopup(true);
       return;
-    }
-
-    if (currWord.toUpperCase() === correctWord.toUpperCase()) {
-      setGameOver({ gameOver: true, guessedWord: true });
-      return;
-    }
-
-    if (currAttempt.attempt === 5) {
-      setGameOver({ gameOver: true, guessedWord: false });
     }
   };
 
@@ -102,6 +151,9 @@ function App() {
           setCorrectLetters,
           almostLetters,
           setAlmostLetters,
+          setLocalCorrectLetters,
+          setLocalAlmostLetters,
+          setLocalDisabledLetters,
         }}
       >
         <div className="wrapper">
