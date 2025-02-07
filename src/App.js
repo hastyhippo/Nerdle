@@ -13,6 +13,32 @@ import {
 import WordRankings from "./components/WordRankings";
 
 export const AppContext = createContext();
+const isValid = (correctLetters, almostLetters, disabledLetters, word) => {
+  let str = word.toUpperCase().split("");
+  for (let pair of correctLetters) {
+    if (word[pair.position].toUpperCase() !== pair.letter.toUpperCase()) {
+      return false;
+    }
+    str[pair.position] = 0;
+  }
+
+  for (let pair of almostLetters) {
+    if (word[pair.position].toUpperCase() === pair.letter.toUpperCase()) {
+      return false;
+    }
+    if (!str.includes(pair.letter)) {
+      return false;
+    }
+    str[str.indexOf(pair.letter)] = "-";
+  }
+
+  for (let letter of disabledLetters) {
+    if (str.includes(letter)) {
+      return false;
+    }
+  }
+  return true;
+};
 
 function App() {
   const [board, setBoard] = useState(boardDefault);
@@ -24,6 +50,7 @@ function App() {
   const [localCorrectLetters, setLocalCorrectLetters] = useState([]);
   const [localAlmostLetters, setLocalAlmostLetters] = useState([]);
   const [localDisabledLetters, setLocalDisabledLetters] = useState([]);
+  const [currentWordBank, setCurrentWordBank] = useState([]);
 
   const [gameOver, setGameOver] = useState({
     gameOver: false,
@@ -33,12 +60,21 @@ function App() {
   const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
-    generateWordSet().then((words) => {
+    generateWordSet(setCurrentWordBank).then((words) => {
       setCorrectWord(words.todaysWord);
     });
     generateValidWords().then((words) => {
       setWordSet(words.wordSet);
     });
+
+    fetch("http://localhost:5000/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(currentWordBank),
+    })
+      .then((response) => response.json())
+      .then((data) => console.log("Server response:", data))
+      .catch((error) => console.error("Error sending data to server:", error));
   }, []);
 
   const onSelectLetter = (keyVal) => {
@@ -56,21 +92,17 @@ function App() {
     setBoard(newBoard);
     setAttempt({ ...currAttempt, letterPos: currAttempt.letterPos - 1 });
   };
-  useEffect(() => {
-    const correctData = {
-      correctLetters: localCorrectLetters,
-    };
-    console.log(correctData);
-    if (localCorrectLetters.length === 0) return;
 
-    fetch("http://localhost:5000/correct", {
+  useEffect(() => {
+    console.log(currentWordBank);
+    fetch("http://localhost:5000/update", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(correctData),
-    });
-    // .then((data) => console.log("Server response:", data))
-    // .catch((error) => console.error("Error sending data to server:", error));
-  }, [localCorrectLetters]);
+      body: JSON.stringify(currentWordBank),
+    })
+      .then((response) => response.json())
+      .catch((error) => console.error("Error sending data to server:", error));
+  }, [currentWordBank]);
 
   useEffect(() => {
     if (
@@ -78,22 +110,16 @@ function App() {
       localAlmostLetters.length > 0 ||
       localDisabledLetters.length > 0
     ) {
-      const data = {
-        correctLetters: localCorrectLetters,
-        almostLetters: localAlmostLetters,
-        disabledLetters: localDisabledLetters,
-      };
-
-      fetch("http://localhost:5000/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      })
-        .then((response) => response.json())
-        .then((data) => console.log("Server response:", data))
-        .catch((error) =>
-          console.error("Error sending data to server:", error)
-        );
+      setCurrentWordBank((prev) =>
+        prev.filter((word) =>
+          isValid(
+            localCorrectLetters,
+            localAlmostLetters,
+            localDisabledLetters,
+            word
+          )
+        )
+      );
     }
   }, [localCorrectLetters, localAlmostLetters, localDisabledLetters]);
 
@@ -108,7 +134,7 @@ function App() {
     if (wordSet.has(currWord.toLowerCase())) {
       // If attempt is valid
       setAttempt({ attempt: currAttempt.attempt + 1, letterPos: 0 });
-
+      // update word bank
       setLocalCorrectLetters([]);
       setLocalAlmostLetters([]);
       setLocalDisabledLetters([]);
@@ -154,6 +180,8 @@ function App() {
           setLocalCorrectLetters,
           setLocalAlmostLetters,
           setLocalDisabledLetters,
+          setCurrentWordBank,
+          currentWordBank,
         }}
       >
         <div className="wrapper">

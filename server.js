@@ -12,37 +12,29 @@ app.use(bodyParser.json());
 
 const cpp_path = path.join(__dirname, "src", "solver", "solver.exe");
 
-let dataStore = {
-  correctLetters: [],
-  almostLetters: [],
-  wrongLetters: [],
-};
-
 app.post("/update", (req, res) => {
-  const guessData = req.body;
-  dataStore.correctLetters = guessData.correctLetters;
-  dataStore.almostLetters = guessData.almostLetters;
-  dataStore.wrongLetters = guessData.disabledLetters;
-
-  const cppProcess = spawn(cpp_path);
-
-  cppProcess.stdin.write(JSON.stringify(guessData));
-  cppProcess.stdin.end();
-  cppProcess.stdout.on("data", (data) => {
-    console.log(`${data.toString().trim()}`);
-  }); // exec(`${cpp_path}`, (error, stdout, stderr) => {
-  //   if (error) {
-  //     console.error(`Error executing script: ${error.message}`);
-  //     return res.status(500).json({ error: error.message });
-  //   }
-  //   if (stderr) {
-  //     console.error(`Script error: ${stderr}`);
-  //     return res.status(500).json({ error: stderr });
-  //   }
-  //   console.log(`C++ Output: ${stdout.trim()}`);
-  //   res.json({ message: stdout.trim() });
+  // const cppProcess = spawn(cpp_path);
+  // let output = "";
+  // cppProcess.stdin.write(JSON.stringify(req.body));
+  // cppProcess.stdin.end();
+  // cppProcess.stdout.on("data", (data) => {
+  //   output += data.toString();
   // });
-  // console.log("Data:", dataStore);
+  // cppProcess.stdout.on("end", () => {
+  //   console.log(`C++ Output: ${output.trim()}`);
+  //   res.json({ message: output.trim() });
+  //   return;
+  // });
+  // cppProcess.stderr.on("data", (data) => {
+  //   console.error(`C++ Error: ${data.toString().trim()}`);
+  //   res.status(500).json({ error: data.toString().trim() });
+  // });
+  // cppProcess.on("exit", (code) => {
+  //   console.log(`C++ process exited with code ${code}`);
+  //   if (code !== 0) {
+  //     res.status(500).json({ error: `Solver exited with code ${code}` });
+  //   }
+  // });
 });
 
 app.get("/data", (res) => {

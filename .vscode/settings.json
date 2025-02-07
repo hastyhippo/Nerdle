@@ -9,7 +9,12 @@
         "utility": "cpp",
         "regex": "cpp",
         "sstream": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "xutility": "cpp",
+        "bitset": "cpp",
+        "fstream": "cpp",
+        "xlocmes": "cpp",
+        "iosfwd": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
