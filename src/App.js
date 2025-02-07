@@ -217,7 +217,7 @@ function App() {
       </AppContext.Provider>
       <p1 className="copyright">
         Made by Nathan Lin™ at:{"  "}
-        <a href="https://github.com/PHILIVEY123">Github</a>
+        <a href="https://github.com/hastyhippo">Github</a>
       </p1>
     </div>
   );
