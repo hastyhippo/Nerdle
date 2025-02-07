@@ -7,8 +7,8 @@ using json = nlohmann::json;
 using namespace std::chrono;
 using namespace std;
 
+// max_count is the size of all possible guesses
 const int max_count = 2318;
-int word_count;
 
 vector<string> valid_words;
 vector<string> all_words;
@@ -30,16 +30,12 @@ void Initialise() {
     }
     while(inFile1 >> s) all_words.push_back(s);
 
-    // ifstream inFile2;
-    // inFile2.open("../components/wordle-bank.txt");
-    // if (!inFile2) {
-    //     cout << "Unable to open valid-words";
-    //     exit(1);
-    // }
-    // while(inFile2 >> s) valid_words.push_back(s);
-
+    // Set every bit inside the full bitset
     for (int i = 0; i < valid_words.size(); i++) full_bitset[i] = 1; 
 
+    // The word breakdown array arr[i][a] stores in a bitset the words which have a
+    // letter a in spot i. The bitset is made of 1 and 0 and is relative to the 
+    // words position in the valid_words array 
     for (int index = 0; index < valid_words.size(); index++) {
         string str = valid_words[index];
         for (int i = 0; i < 5; i++) {
@@ -48,6 +44,7 @@ void Initialise() {
     }
 }
 
+// O(n * m * 3**5), where n is size of valid_words and m is size of valid_guesses needs optimisations
 void doSolve(int index, string str, unordered_map<string,int> &outcomes, bitset<max_count> bits, string cnt, vector<bool> ignore) {
     // If no words can be formed, return
     if (bits.none()) return;
@@ -62,6 +59,8 @@ void doSolve(int index, string str, unordered_map<string,int> &outcomes, bitset<
 
     // Set current to green
     doSolve(index + 1, str, outcomes, bits & word_breakdowns[index][ch-'a'], cnt + "2", ignore);
+
+    // Remove the possibilities which have a green letter
     bits &= ~word_breakdowns[index][ch-'a'];
 
     // Set current to yellow 
@@ -85,10 +84,14 @@ void Solve() {
     // For each guess, calculate how "good" it is.
     for (int i = 0; i < all_words_count; i++) {
         unordered_map<string, int> outcomes;
+
+        // Ignore makes sure yellows aren't counted twice or more
         vector<bool> ignore(5, false);
         string str = all_words[i];
+
         doSolve(0, str, outcomes, full_bitset, "", ignore);
 
+        // Calculate the expected log2 information
         double score = 0, n = valid_words.size();
         for (auto a : outcomes) {
             double p = a.second;
@@ -102,6 +105,7 @@ void Solve() {
         return p1.second < p2.second;
     });
 
+    // Take 10 best guesses and print them to return them
     scores.resize(10);
 
     json ret_json = json::array();
@@ -113,29 +117,36 @@ void Solve() {
 
 int main(int argc, char* argv[]) {
     auto start = high_resolution_clock::now();
+
+    // Take the input jsonString which contains all the valid words
     string jsonString;
     cin >> jsonString;
     json jsonData = json::parse(jsonString);
     for (auto a : jsonData) {
         valid_words.push_back(a);
     }
+
+    // Return any edge cases
     if (valid_words.size() == 0) {
         return 0;
     }
     if (valid_words.size() == 1) {
+        // If one word is left then it must be the answer
         json ret_json = json::array();
         ret_json.push_back({{"word", valid_words[0]}, {"score", -1}});
         cout << ret_json.dump() << '\n';
         return 0;
     }
     if (valid_words.size() == 2) {
+        // This is a simple 1/2 chance guess and should always be taken 
+        // opposed to the "optimal information guess"
         json ret_json = json::array();
         ret_json.push_back({{"word", valid_words[0]}, {"score", 0.5}});
         ret_json.push_back({{"word", valid_words[1]}, {"score", 0.5}});
         cout << ret_json.dump() << '\n';
         return 0;
     }
-    word_count = valid_words.size();
+
     Initialise();
     Solve();
 
