@@ -51,6 +51,7 @@ function App() {
   const [localAlmostLetters, setLocalAlmostLetters] = useState([]);
   const [localDisabledLetters, setLocalDisabledLetters] = useState([]);
   const [currentWordBank, setCurrentWordBank] = useState([]);
+  const [results, setResults] = useState([]);
 
   const [gameOver, setGameOver] = useState({
     gameOver: false,
@@ -59,6 +60,22 @@ function App() {
   const [correctWord, setCorrectWord] = useState("");
   const [showPopup, setShowPopup] = useState(false);
 
+  const fetchRankings = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(currentWordBank),
+      });
+
+      const data = await response.json();
+      console.log("Server response:", data.message);
+      setResults(data.message);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
   useEffect(() => {
     generateWordSet(setCurrentWordBank).then((words) => {
       setCorrectWord(words.todaysWord);
@@ -66,15 +83,7 @@ function App() {
     generateValidWords().then((words) => {
       setWordSet(words.wordSet);
     });
-
-    fetch("http://localhost:5000/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(currentWordBank),
-    })
-      .then((response) => response.json())
-      .then((data) => console.log("Server response:", data))
-      .catch((error) => console.error("Error sending data to server:", error));
+    fetchRankings();
   }, []);
 
   const onSelectLetter = (keyVal) => {
@@ -94,14 +103,10 @@ function App() {
   };
 
   useEffect(() => {
-    console.log(currentWordBank);
-    fetch("http://localhost:5000/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(currentWordBank),
-    })
-      .then((response) => response.json())
-      .catch((error) => console.error("Error sending data to server:", error));
+    if (currentWordBank.length != 0) {
+      console.log(currentWordBank);
+    }
+    fetchRankings();
   }, [currentWordBank]);
 
   useEffect(() => {
@@ -182,6 +187,8 @@ function App() {
           setLocalDisabledLetters,
           setCurrentWordBank,
           currentWordBank,
+          results,
+          setResults,
         }}
       >
         <div className="wrapper">
