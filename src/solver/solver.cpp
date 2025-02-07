@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
     }
     if (valid_words.size() == 1) {
         json ret_json = json::array();
-        ret_json.push_back({{"word", valid_words[0]}, {"score", 0.0}});
+        ret_json.push_back({{"word", valid_words[0]}, {"score", -1}});
         cout << ret_json.dump() << '\n';
         return 0;
     }

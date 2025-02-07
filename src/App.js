@@ -51,7 +51,18 @@ function App() {
   const [localAlmostLetters, setLocalAlmostLetters] = useState([]);
   const [localDisabledLetters, setLocalDisabledLetters] = useState([]);
   const [currentWordBank, setCurrentWordBank] = useState([]);
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState([
+    { score: 5.293740195096457, word: "soare" },
+    { score: 5.29775916800615, word: "roate" },
+    { score: 5.299916260372627, word: "raise" },
+    { score: 5.313051076665297, word: "raile" },
+    { score: 5.313511809209426, word: "reast" },
+    { score: 5.324089998968738, word: "slate" },
+    { score: 5.344739676141134, word: "crate" },
+    { score: 5.345233005895171, word: "salet" },
+    { score: 5.346819275998285, word: "irate" },
+    { score: 5.349059368671523, word: "trace" },
+  ]);
 
   const [gameOver, setGameOver] = useState({
     gameOver: false,
@@ -60,21 +71,31 @@ function App() {
   const [correctWord, setCorrectWord] = useState("");
   const [showPopup, setShowPopup] = useState(false);
 
-  const fetchRankings = async () => {
+  const fetchRankings = async (controller) => {
     try {
       const response = await fetch("http://localhost:5000/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(currentWordBank),
+        signal: controller.signal,
       });
 
       const data = await response.json();
-      console.log("Server response:", data.message);
       setResults(data.message);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
+
+  useEffect(() => {
+    if (currentWordBank.length === 0) return;
+    console.log(currentWordBank);
+    const controller = new AbortController();
+
+    fetchRankings(controller);
+
+    return () => controller.abort();
+  }, [currentWordBank]);
 
   useEffect(() => {
     generateWordSet(setCurrentWordBank).then((words) => {
@@ -83,7 +104,6 @@ function App() {
     generateValidWords().then((words) => {
       setWordSet(words.wordSet);
     });
-    fetchRankings();
   }, []);
 
   const onSelectLetter = (keyVal) => {
@@ -101,13 +121,6 @@ function App() {
     setBoard(newBoard);
     setAttempt({ ...currAttempt, letterPos: currAttempt.letterPos - 1 });
   };
-
-  useEffect(() => {
-    if (currentWordBank.length != 0) {
-      console.log(currentWordBank);
-    }
-    fetchRankings();
-  }, [currentWordBank]);
 
   useEffect(() => {
     if (
