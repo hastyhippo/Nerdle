@@ -1,8 +1,10 @@
 # Nerdle
-Wordle solver and clone written in React JS, CSS, HTML and C++
+Wordle clone written in React JS, CSS, HTML and C++
 
-To speed up computation, bitwise C++ operations were used as part of the backend.
+A sidebar contains the optimal guess, based on information theory alongside some precomputation.
+To speed up computation, C++ was integrated into the codebase, using bitwise operations and search algorithms.
 
 Run the following commands to start: 
 npm i yarn
+
 yarn start
