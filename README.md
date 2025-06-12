@@ -11,6 +11,10 @@ npm i yarn
 
 yarn start
 
+and to use the solver, run:
+
+node server.js 
+
 # Wordle Clone
 ![image](https://github.com/user-attachments/assets/76489517-15e3-411f-a133-9bdc7d063fb8)
 
