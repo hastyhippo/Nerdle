@@ -39,10 +39,12 @@ function SearchSpace() {
       </div>
 
       <div className="search-space-grid" aria-hidden="true">
-        {allWords.map((word) => (
+        {allWords.map((word, i) => (
           <span
             key={word}
             className={`sdot ${alive.has(word) ? "alive" : "cut"}`}
+            /* index drives the stagger; set once, never changes */
+            style={{ "--i": i }}
           />
         ))}
       </div>
