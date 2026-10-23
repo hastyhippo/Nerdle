@@ -12,6 +12,7 @@ import {
   markGuess,
 } from "./components/Words";
 import WordRankings from "./components/WordRankings";
+import SearchSpace from "./components/SearchSpace";
 
 export const AppContext = createContext();
 
@@ -67,6 +68,8 @@ function App() {
   const [almostLetters, setAlmostLetters] = useState([]);
   const [correctLetters, setCorrectLetters] = useState([]);
   const [currentWordBank, setCurrentWordBank] = useState([]);
+  const [allWords, setAllWords] = useState([]);
+  const [history, setHistory] = useState([]);
   const [results, setResults] = useState(SEED_RESULTS);
   const [gameOver, setGameOver] = useState({
     gameOver: false,
@@ -102,9 +105,10 @@ function App() {
   }, [currentWordBank, fetchRankings]);
 
   useEffect(() => {
-    generateWordSet(setCurrentWordBank).then(({ todaysWord }) =>
-      setCorrectWord(todaysWord)
-    );
+    generateWordSet((words) => {
+      setCurrentWordBank(words);
+      setAllWords(words);
+    }).then(({ todaysWord }) => setCorrectWord(todaysWord));
     generateValidWords().then(({ wordSet }) => setWordSet(wordSet));
   }, []);
 
@@ -178,7 +182,14 @@ function App() {
     setDisabledLetters((prev) => [...prev, ...greys]);
 
     const keep = makeFilter(greens, yellows, greys);
-    setCurrentWordBank((prev) => prev.filter(keep));
+    setCurrentWordBank((prev) => {
+      const next = prev.filter(keep);
+      setHistory((h) => [
+        ...h,
+        { guess: currWord.toLowerCase(), before: prev.length, after: next.length },
+      ]);
+      return next;
+    });
 
     setAttempt({ attempt: currAttempt.attempt + 1, letterPos: 0 });
 
@@ -211,6 +222,8 @@ function App() {
           gameOver,
           setGameOver,
           currentWordBank,
+          allWords,
+          history,
           results,
           rankingsLoading,
         }}
@@ -223,6 +236,7 @@ function App() {
           </div>
           <div className="solver">
             <WordRankings />
+            <SearchSpace />
           </div>
         </div>
       </AppContext.Provider>
