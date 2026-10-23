@@ -1,17 +1,19 @@
 {
   "files": {
     "main.css": "/Nerdle/static/css/main.26ad8ca7.css",
-    "main.js": "/Nerdle/static/js/main.cb8288b7.js",
+    "main.js": "/Nerdle/static/js/main.9e6c0f94.js",
+    "static/js/188.9e07ff63.chunk.js": "/Nerdle/static/js/188.9e07ff63.chunk.js",
     "static/js/453.5e08c15b.chunk.js": "/Nerdle/static/js/453.5e08c15b.chunk.js",
     "static/media/valid-words.txt": "/Nerdle/static/media/valid-words.77323c9ed21a19346d1d.txt",
     "static/media/wordle-bank.txt": "/Nerdle/static/media/wordle-bank.d5915cd4ced555dc5665.txt",
     "index.html": "/Nerdle/index.html",
     "main.26ad8ca7.css.map": "/Nerdle/static/css/main.26ad8ca7.css.map",
-    "main.cb8288b7.js.map": "/Nerdle/static/js/main.cb8288b7.js.map",
+    "main.9e6c0f94.js.map": "/Nerdle/static/js/main.9e6c0f94.js.map",
+    "188.9e07ff63.chunk.js.map": "/Nerdle/static/js/188.9e07ff63.chunk.js.map",
     "453.5e08c15b.chunk.js.map": "/Nerdle/static/js/453.5e08c15b.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.26ad8ca7.css",
-    "static/js/main.cb8288b7.js"
+    "static/js/main.9e6c0f94.js"
   ]
 }
