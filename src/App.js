@@ -4,7 +4,7 @@ import Board from "./components/Board";
 import GameOver from "./components/GameOver";
 import PopupMessage from "./components/Popup";
 
-import { createContext, useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import {
   boardDefault,
   generateValidWords,
@@ -15,12 +15,6 @@ import WordRankings from "./components/WordRankings";
 import SearchSpace from "./components/SearchSpace";
 
 export const AppContext = createContext();
-
-// No backend -> rankings stay at their seeded values. `npm start` still talks
-// to a local server.js; a production build only does if the var is set.
-const SOLVER_URL =
-  process.env.REACT_APP_SOLVER_URL ??
-  (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "");
 
 const SEED_RESULTS = [
   { score: 5.293740195096457, word: "soare" },
@@ -79,30 +73,26 @@ function App() {
   const [showPopup, setShowPopup] = useState(false);
   const [rankingsLoading, setRankingsLoading] = useState(false);
 
-  const fetchRankings = useCallback(async (bank, signal) => {
-    setRankingsLoading(true);
-    try {
-      const response = await fetch(`${SOLVER_URL}/update`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bank),
-        signal,
-      });
-      const data = await response.json();
-      setResults(data.message);
-    } catch (error) {
-      if (error.name !== "AbortError") console.error("Solver unavailable:", error);
-    } finally {
-      if (!signal.aborted) setRankingsLoading(false);
-    }
+  // The solver runs in a worker: it is a port of solver.cpp, so the site needs
+  // no backend and works as a static deploy.
+  const workerRef = useRef(null);
+  useEffect(() => {
+    const worker = new Worker(
+      new URL("./solver/solver.worker.js", import.meta.url)
+    );
+    worker.onmessage = ({ data }) => {
+      setResults(data);
+      setRankingsLoading(false);
+    };
+    workerRef.current = worker;
+    return () => worker.terminate();
   }, []);
 
   useEffect(() => {
-    if (!SOLVER_URL || currentWordBank.length === 0) return;
-    const controller = new AbortController();
-    fetchRankings(currentWordBank, controller.signal);
-    return () => controller.abort();
-  }, [currentWordBank, fetchRankings]);
+    if (!workerRef.current || currentWordBank.length === 0) return;
+    setRankingsLoading(true);
+    workerRef.current.postMessage(currentWordBank);
+  }, [currentWordBank]);
 
   useEffect(() => {
     generateWordSet((words) => {
