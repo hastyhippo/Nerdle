@@ -15,8 +15,11 @@ import WordRankings from "./components/WordRankings";
 
 export const AppContext = createContext();
 
-// Without a solver backend the rankings stay at their seeded values.
-const SOLVER_URL = process.env.REACT_APP_SOLVER_URL || "";
+// No backend -> rankings stay at their seeded values. `npm start` still talks
+// to a local server.js; a production build only does if the var is set.
+const SOLVER_URL =
+  process.env.REACT_APP_SOLVER_URL ??
+  (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "");
 
 const SEED_RESULTS = [
   { score: 5.293740195096457, word: "soare" },
@@ -71,8 +74,10 @@ function App() {
   });
   const [correctWord, setCorrectWord] = useState("");
   const [showPopup, setShowPopup] = useState(false);
+  const [rankingsLoading, setRankingsLoading] = useState(false);
 
   const fetchRankings = useCallback(async (bank, signal) => {
+    setRankingsLoading(true);
     try {
       const response = await fetch(`${SOLVER_URL}/update`, {
         method: "POST",
@@ -84,6 +89,8 @@ function App() {
       setResults(data.message);
     } catch (error) {
       if (error.name !== "AbortError") console.error("Solver unavailable:", error);
+    } finally {
+      if (!signal.aborted) setRankingsLoading(false);
     }
   }, []);
 
@@ -127,6 +134,22 @@ function App() {
       return { ...a, letterPos: a.letterPos - 1 };
     });
   }, []);
+
+  // Clicking a suggestion drops it into the current row, ready to submit.
+  const onFillWord = useCallback(
+    (word) => {
+      if (gameOver.gameOver) return;
+      const letters = word.toUpperCase().split("");
+      if (letters.length !== 5) return;
+      setBoard((b) => {
+        const next = b.map((row) => [...row]);
+        next[currAttempt.attempt] = letters;
+        return next;
+      });
+      setAttempt((a) => ({ ...a, letterPos: 5 }));
+    },
+    [currAttempt.attempt, gameOver.gameOver]
+  );
 
   const onEnter = useCallback(() => {
     if (currAttempt.letterPos !== 5) return;
@@ -180,6 +203,7 @@ function App() {
           onDelete,
           onEnter,
           onSelectLetter,
+          onFillWord,
           correctWord,
           disabledLetters,
           almostLetters,
@@ -188,6 +212,7 @@ function App() {
           setGameOver,
           currentWordBank,
           results,
+          rankingsLoading,
         }}
       >
         <div className="wrapper">

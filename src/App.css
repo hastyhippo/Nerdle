@@ -230,6 +230,12 @@ nav h1 {
 }
 
 .word-rankings-item {
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   display: flex;
   justify-content: space-between;
   padding: calc(1.1vh) 16px;
@@ -242,8 +248,17 @@ nav h1 {
   border-bottom: none;
 }
 
-.word-rankings-item:hover {
-  background: #f8f9fa;
+.word-rankings-item:hover:not(:disabled) {
+  background: #ffffff1f;
+}
+
+.word-rankings-item:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: -2px;
+}
+
+.word-rankings-item:disabled {
+  cursor: default;
 }
 
 .word-text {
@@ -259,4 +274,34 @@ nav h1 {
   font-size: 14px;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
+}
+/* Rankings loading state: spinner in the heading, list dimmed but still
+   readable so the layout does not jump while the solver recomputes. */
+.rankings-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 10px;
+  vertical-align: middle;
+  border: 2px solid #ffffff40;
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: rankings-spin 0.7s linear infinite;
+}
+
+@keyframes rankings-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.word-rankings-list.is-loading {
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rankings-spinner {
+    animation-duration: 2s;
+  }
 }
