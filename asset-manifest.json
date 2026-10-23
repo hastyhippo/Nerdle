@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/Nerdle/static/css/main.5914bbe5.css",
+    "main.js": "/Nerdle/static/js/main.1da089dc.js",
+    "static/js/453.5e08c15b.chunk.js": "/Nerdle/static/js/453.5e08c15b.chunk.js",
+    "static/media/valid-words.txt": "/Nerdle/static/media/valid-words.77323c9ed21a19346d1d.txt",
+    "static/media/wordle-bank.txt": "/Nerdle/static/media/wordle-bank.d5915cd4ced555dc5665.txt",
+    "index.html": "/Nerdle/index.html",
+    "main.5914bbe5.css.map": "/Nerdle/static/css/main.5914bbe5.css.map",
+    "main.1da089dc.js.map": "/Nerdle/static/js/main.1da089dc.js.map",
+    "453.5e08c15b.chunk.js.map": "/Nerdle/static/js/453.5e08c15b.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.5914bbe5.css",
+    "static/js/main.1da089dc.js"
+  ]
+}
