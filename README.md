@@ -2,19 +2,6 @@
 
 Wordle clone written in React JS, CSS, HTML and C++
 
-A sidebar contains the optimal guess, based on information theory alongside some precomputation.
-To speed up computation, C++ was integrated into the codebase, using bitwise operations and search algorithms.
-
-Run the following commands to start: 
-
-npm i yarn
-
-yarn start
-
-and to use the solver, run:
-
-node server.js 
-
 # Wordle Clone
 ![image](https://github.com/user-attachments/assets/76489517-15e3-411f-a133-9bdc7d063fb8)
 
