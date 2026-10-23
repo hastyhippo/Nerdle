@@ -1,10 +1,8 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext } from "react";
 import { AppContext } from "../App";
 import "../App.css";
 function WordRankings() {
   const { results } = useContext(AppContext);
-
-  useEffect(() => {}, [results]);
 
   return (
     <div className="word-rankings-container">

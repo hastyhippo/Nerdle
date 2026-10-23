@@ -1,12 +1,14 @@
-import React, { useCallback, useContext, useEffect } from "react";
+import React, { useCallback, useContext, useEffect, useMemo } from "react";
 import Key from "./Key";
 import { AppContext } from "../App";
 
-function Keyboard() {
-  const keys1 = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"];
-  const keys2 = ["A", "S", "D", "F", "G", "H", "J", "K", "L"];
-  const keys3 = ["Z", "X", "C", "V", "B", "N", "M"];
+const ROWS = [
+  ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+  ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+  ["Z", "X", "C", "V", "B", "N", "M"],
+];
 
+function Keyboard() {
   const {
     onEnter,
     onDelete,
@@ -16,71 +18,40 @@ function Keyboard() {
     correctLetters,
   } = useContext(AppContext);
 
-  const handleKeyboard = useCallback((event) => {
-    if (event.key === "Enter") {
-      onEnter();
-    } else if (event.key === "Backspace") {
-      onDelete();
-    } else {
-      keys1.forEach((key) => {
-        if (event.key.toLowerCase() === key.toLowerCase()) {
-          onSelectLetter(key);
-        }
-      });
-      keys2.forEach((key) => {
-        if (event.key.toLowerCase() === key.toLowerCase()) {
-          onSelectLetter(key);
-        }
-      });
-      keys3.forEach((key) => {
-        if (event.key.toLowerCase() === key.toLowerCase()) {
-          onSelectLetter(key);
-        }
-      });
-    }
-  });
+  // Sets, so colouring 26 keys is 26 lookups rather than 78 array scans.
+  const disabled = useMemo(() => new Set(disabledLetters), [disabledLetters]);
+  const almost = useMemo(() => new Set(almostLetters), [almostLetters]);
+  const correct = useMemo(() => new Set(correctLetters), [correctLetters]);
+
+  const handleKeyboard = useCallback(
+    (event) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key === "Enter") return onEnter();
+      if (event.key === "Backspace") return onDelete();
+      if (/^[a-z]$/i.test(event.key)) onSelectLetter(event.key.toUpperCase());
+    },
+    [onEnter, onDelete, onSelectLetter]
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", handleKeyboard);
-    return () => {
-      document.removeEventListener("keydown", handleKeyboard);
-    };
+    return () => document.removeEventListener("keydown", handleKeyboard);
   }, [handleKeyboard]);
 
-  return (
-    <div className="keyboard" onKeyDown={handleKeyboard}>
-      <div className="line1">
-        {keys1.map((key) => {
-          let state = "";
-          if (disabledLetters.includes(key)) state = "disabled";
-          if (almostLetters.includes(key)) state = "almost";
-          if (correctLetters.includes(key)) state = "correct";
-          return <Key keyVal={key} state={state} />;
-        })}
-      </div>
-      <div className="line2">
-        {" "}
-        {keys2.map((key) => {
-          let state = "";
-          if (disabledLetters.includes(key)) state = "disabled";
-          if (almostLetters.includes(key)) state = "almost";
-          if (correctLetters.includes(key)) state = "correct";
-          return <Key keyVal={key} state={state} />;
-        })}
-      </div>
+  const stateOf = (key) =>
+    correct.has(key) ? "correct" : almost.has(key) ? "almost" : disabled.has(key) ? "disabled" : "";
 
-      <div className="line3">
-        {" "}
-        <Key keyVal={"ENTER"} bigKey />
-        {keys3.map((key) => {
-          let state = "";
-          if (disabledLetters.includes(key)) state = "disabled";
-          if (almostLetters.includes(key)) state = "almost";
-          if (correctLetters.includes(key)) state = "correct";
-          return <Key keyVal={key} state={state} />;
-        })}
-        <Key keyVal={"DELETE"} bigKey />
-      </div>
+  return (
+    <div className="keyboard">
+      {ROWS.map((row, i) => (
+        <div className={`line${i + 1}`} key={i}>
+          {i === 2 && <Key keyVal="ENTER" bigKey />}
+          {row.map((key) => (
+            <Key key={key} keyVal={key} state={stateOf(key)} />
+          ))}
+          {i === 2 && <Key keyVal="DELETE" bigKey />}
+        </div>
+      ))}
     </div>
   );
 }

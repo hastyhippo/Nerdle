@@ -4,40 +4,56 @@ import Board from "./components/Board";
 import GameOver from "./components/GameOver";
 import PopupMessage from "./components/Popup";
 
-import { createContext, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import {
   boardDefault,
   generateValidWords,
   generateWordSet,
+  markGuess,
 } from "./components/Words";
 import WordRankings from "./components/WordRankings";
 
 export const AppContext = createContext();
-const isValid = (correctLetters, almostLetters, disabledLetters, word) => {
-  let str = word.toUpperCase().split("");
-  for (let pair of correctLetters) {
-    if (word[pair.position].toUpperCase() !== pair.letter.toUpperCase()) {
-      return false;
-    }
-    str[pair.position] = 0;
-  }
 
-  for (let pair of almostLetters) {
-    if (word[pair.position].toUpperCase() === pair.letter.toUpperCase()) {
-      return false;
-    }
-    if (!str.includes(pair.letter)) {
-      return false;
-    }
-    str[str.indexOf(pair.letter)] = "-";
-  }
+// Without a solver backend the rankings stay at their seeded values.
+const SOLVER_URL = process.env.REACT_APP_SOLVER_URL || "";
 
-  for (let letter of disabledLetters) {
-    if (str.includes(letter)) {
-      return false;
+const SEED_RESULTS = [
+  { score: 5.293740195096457, word: "soare" },
+  { score: 5.29775916800615, word: "roate" },
+  { score: 5.299916260372627, word: "raise" },
+  { score: 5.313051076665297, word: "raile" },
+  { score: 5.313511809209426, word: "reast" },
+  { score: 5.324089998968738, word: "slate" },
+  { score: 5.344739676141134, word: "crate" },
+  { score: 5.345233005895171, word: "salet" },
+  { score: 5.346819275998285, word: "irate" },
+  { score: 5.349059368671523, word: "trace" },
+];
+
+// Build the test once per guess, not once per candidate: the word bank is
+// ~12k entries, so hoisting the lowercasing out of the loop is most of the win.
+const makeFilter = (greens, yellows, greys) => {
+  const g = greens.map((p) => [p.position, p.letter.toLowerCase()]);
+  const y = yellows.map((p) => [p.position, p.letter.toLowerCase()]);
+  const grey = [...new Set(greys.map((l) => l.toLowerCase()))];
+
+  return (word) => {
+    for (const [pos, ch] of g) if (word[pos] !== ch) return false;
+
+    // A letter already claimed by a green cannot also satisfy a yellow.
+    const pool = word.split("");
+    for (const [pos] of g) pool[pos] = null;
+
+    for (const [pos, ch] of y) {
+      if (word[pos] === ch) return false;
+      const j = pool.indexOf(ch);
+      if (j === -1) return false;
+      pool[j] = null;
     }
-  }
-  return true;
+    for (const ch of grey) if (pool.includes(ch)) return false;
+    return true;
+  };
 };
 
 function App() {
@@ -47,23 +63,8 @@ function App() {
   const [disabledLetters, setDisabledLetters] = useState([]);
   const [almostLetters, setAlmostLetters] = useState([]);
   const [correctLetters, setCorrectLetters] = useState([]);
-  const [localCorrectLetters, setLocalCorrectLetters] = useState([]);
-  const [localAlmostLetters, setLocalAlmostLetters] = useState([]);
-  const [localDisabledLetters, setLocalDisabledLetters] = useState([]);
   const [currentWordBank, setCurrentWordBank] = useState([]);
-  const [results, setResults] = useState([
-    { score: 5.293740195096457, word: "soare" },
-    { score: 5.29775916800615, word: "roate" },
-    { score: 5.299916260372627, word: "raise" },
-    { score: 5.313051076665297, word: "raile" },
-    { score: 5.313511809209426, word: "reast" },
-    { score: 5.324089998968738, word: "slate" },
-    { score: 5.344739676141134, word: "crate" },
-    { score: 5.345233005895171, word: "salet" },
-    { score: 5.346819275998285, word: "irate" },
-    { score: 5.349059368671523, word: "trace" },
-  ]);
-
+  const [results, setResults] = useState(SEED_RESULTS);
   const [gameOver, setGameOver] = useState({
     gameOver: false,
     guessedWord: false,
@@ -71,112 +72,105 @@ function App() {
   const [correctWord, setCorrectWord] = useState("");
   const [showPopup, setShowPopup] = useState(false);
 
-  const fetchRankings = async (controller) => {
+  const fetchRankings = useCallback(async (bank, signal) => {
     try {
-      const response = await fetch("http://localhost:5000/update", {
+      const response = await fetch(`${SOLVER_URL}/update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentWordBank),
-        signal: controller.signal,
+        body: JSON.stringify(bank),
+        signal,
       });
-
       const data = await response.json();
       setResults(data.message);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      if (error.name !== "AbortError") console.error("Solver unavailable:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (currentWordBank.length === 0) return;
-    console.log(currentWordBank);
+    if (!SOLVER_URL || currentWordBank.length === 0) return;
     const controller = new AbortController();
-
-    fetchRankings(controller);
-
+    fetchRankings(currentWordBank, controller.signal);
     return () => controller.abort();
-  }, [currentWordBank]);
+  }, [currentWordBank, fetchRankings]);
 
   useEffect(() => {
-    generateWordSet(setCurrentWordBank).then((words) => {
-      setCorrectWord(words.todaysWord);
-    });
-    generateValidWords().then((words) => {
-      setWordSet(words.wordSet);
+    generateWordSet(setCurrentWordBank).then(({ todaysWord }) =>
+      setCorrectWord(todaysWord)
+    );
+    generateValidWords().then(({ wordSet }) => setWordSet(wordSet));
+  }, []);
+
+  const onSelectLetter = useCallback(
+    (keyVal) => {
+      setAttempt((a) => {
+        if (a.letterPos > 4) return a;
+        setBoard((b) => {
+          const next = b.map((row) => [...row]);
+          next[a.attempt][a.letterPos] = keyVal;
+          return next;
+        });
+        return { ...a, letterPos: a.letterPos + 1 };
+      });
+    },
+    []
+  );
+
+  const onDelete = useCallback(() => {
+    setAttempt((a) => {
+      if (a.letterPos === 0) return a;
+      setBoard((b) => {
+        const next = b.map((row) => [...row]);
+        next[a.attempt][a.letterPos - 1] = "";
+        return next;
+      });
+      return { ...a, letterPos: a.letterPos - 1 };
     });
   }, []);
 
-  const onSelectLetter = (keyVal) => {
-    if (currAttempt.letterPos > 4) return;
-    const newBoard = [...board];
-    newBoard[currAttempt.attempt][currAttempt.letterPos] = keyVal;
-    setBoard(newBoard);
-    setAttempt({ ...currAttempt, letterPos: currAttempt.letterPos + 1 });
-  };
-
-  const onDelete = () => {
-    if (currAttempt.letterPos === 0) return;
-    const newBoard = [...board];
-    newBoard[currAttempt.attempt][currAttempt.letterPos - 1] = "";
-    setBoard(newBoard);
-    setAttempt({ ...currAttempt, letterPos: currAttempt.letterPos - 1 });
-  };
-
-  useEffect(() => {
-    if (
-      localCorrectLetters.length > 0 ||
-      localAlmostLetters.length > 0 ||
-      localDisabledLetters.length > 0
-    ) {
-      setCurrentWordBank((prev) =>
-        prev.filter((word) =>
-          isValid(
-            localCorrectLetters,
-            localAlmostLetters,
-            localDisabledLetters,
-            word
-          )
-        )
-      );
-    }
-  }, [localCorrectLetters, localAlmostLetters, localDisabledLetters]);
-
-  const onEnter = () => {
+  const onEnter = useCallback(() => {
     if (currAttempt.letterPos !== 5) return;
 
-    let currWord = "";
-    for (let i = 0; i < 5; i++) {
-      currWord += board[currAttempt.attempt][i];
-    }
-
-    if (wordSet.has(currWord.toLowerCase())) {
-      // If attempt is valid
-      setAttempt({ attempt: currAttempt.attempt + 1, letterPos: 0 });
-      // update word bank
-      setLocalCorrectLetters([]);
-      setLocalAlmostLetters([]);
-      setLocalDisabledLetters([]);
-
-      if (currWord.toUpperCase() === correctWord.toUpperCase()) {
-        setGameOver({ gameOver: true, guessedWord: true });
-        return;
-      }
-
-      if (currAttempt.attempt === 5) {
-        setGameOver({ gameOver: true, guessedWord: false });
-      }
-      return;
-    } else {
+    const currWord = board[currAttempt.attempt].join("");
+    if (!wordSet.has(currWord.toLowerCase())) {
       setShowPopup(true);
       return;
     }
-  };
+
+    // Classify the whole guess here rather than in each Letter: one pass, and
+    // the word bank can be narrowed in the same step.
+    const marks = markGuess(currWord, correctWord);
+    const greens = [];
+    const yellows = [];
+    const greys = [];
+    marks.forEach((mark, i) => {
+      const ch = currWord[i].toUpperCase();
+      if (mark === "correct") greens.push({ letter: ch, position: i });
+      else if (mark === "almost") yellows.push({ letter: ch, position: i });
+      else greys.push(ch);
+    });
+
+    setCorrectLetters((prev) => [...prev, ...greens.map((p) => p.letter)]);
+    setAlmostLetters((prev) => [...prev, ...yellows.map((p) => p.letter)]);
+    setDisabledLetters((prev) => [...prev, ...greys]);
+
+    const keep = makeFilter(greens, yellows, greys);
+    setCurrentWordBank((prev) => prev.filter(keep));
+
+    setAttempt({ attempt: currAttempt.attempt + 1, letterPos: 0 });
+
+    if (currWord.toUpperCase() === correctWord.toUpperCase()) {
+      setGameOver({ gameOver: true, guessedWord: true });
+    } else if (currAttempt.attempt === 5) {
+      setGameOver({ gameOver: true, guessedWord: false });
+    }
+  }, [board, currAttempt, wordSet, correctWord]);
 
   return (
     <div className="App">
       <nav>
         <h1>Nerdle</h1>
-      </nav>{" "}
+      </nav>
       <AppContext.Provider
         value={{
           board,
@@ -187,21 +181,13 @@ function App() {
           onEnter,
           onSelectLetter,
           correctWord,
-          setDisabledLetters,
           disabledLetters,
-          setGameOver,
-          gameOver,
-          correctLetters,
-          setCorrectLetters,
           almostLetters,
-          setAlmostLetters,
-          setLocalCorrectLetters,
-          setLocalAlmostLetters,
-          setLocalDisabledLetters,
-          setCurrentWordBank,
+          correctLetters,
+          gameOver,
+          setGameOver,
           currentWordBank,
           results,
-          setResults,
         }}
       >
         <div className="wrapper">
@@ -215,10 +201,10 @@ function App() {
           </div>
         </div>
       </AppContext.Provider>
-      <p1 className="copyright">
+      <p className="copyright">
         Made by Nathan Lin™ at:{"  "}
         <a href="https://github.com/hastyhippo">Github</a>
-      </p1>
+      </p>
     </div>
   );
 }

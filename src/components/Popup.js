@@ -8,7 +8,7 @@ const PopupMessage = ({ showPopup, setShowPopup }) => {
       }, 1500);
       return () => clearTimeout(timeout);
     }
-  }, [showPopup]);
+  }, [showPopup, setShowPopup]);
 
   return (
     <div>
