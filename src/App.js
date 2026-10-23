@@ -80,6 +80,10 @@ function App() {
     const worker = new Worker(
       new URL("./solver/solver.worker.js", import.meta.url)
     );
+    worker.onerror = (e) => {
+      console.error("Solver worker failed:", e.message || e);
+      setRankingsLoading(false);
+    };
     worker.onmessage = ({ data }) => {
       setResults(data);
       setRankingsLoading(false);
